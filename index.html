@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Control de Gastos Local</title>
+  <script src="https://cdn.tailwindcss.com"></script> 
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; } 
+    .tab-button.active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 600; }
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+    .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 0.5rem; }
+    .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+    .transaction-list::-webkit-scrollbar { width: 8px; }
+    .transaction-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .transaction-list::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+    .transaction-list::-webkit-scrollbar-thumb:hover { background: #555; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="w-full max-w-md bg-white rounded-xl shadow-xl p-6">
+    <header class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-blue-600">Mis Finanzas Locales</h1>
+    </header>
+    <div class="mb-6">
+      <div class="flex border-b">
+        <button id="tabTransaccion" class="tab-button flex-1 py-2 px-4 text-center text-gray-600 hover:bg-gray-50 focus:outline-none active" onclick="showTab('transaccion')">
+          <i class="fas fa-exchange-alt mr-2"></i>Nueva Transacción
+        </button>
+        <button id="tabListado" class="tab-button flex-1 py-2 px-4 text-center text-gray-600 hover:bg-gray-50 focus:outline-none" onclick="showTab('listado')">
+          <i class="fas fa-list-ul mr-2"></i>Historial
+        </button>
+        <button id="tabReportes" class="tab-button flex-1 py-2 px-4 text-center text-gray-600 hover:bg-gray-50 focus:outline-none" onclick="showTab('reportes')">
+          <i class="fas fa-chart-line mr-2"></i>Reportes
+        </button>
+      </div>
+    </div>
+    <div id="contentTransaccion" class="tab-content">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Registrar Movimiento</h2>
+      <form id="transactionForm" class="space-y-4">
+        <div>
+          <label for="date" class="block text-sm font-medium text-gray-700">Fecha</label>
+          <input type="date" id="date" name="date" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700">Descripción</label>
+          <input type="text" id="description" name="description" required placeholder="Ej: Compra de materiales" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label for="amount" class="block text-sm font-medium text-gray-700">Monto</label>
+          <input type="number" id="amount" name="amount" step="0.01" required placeholder="0.00" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tipo de Transacción</label>
+          <div class="mt-2 flex space-x-4">
+            <label class="inline-flex items-center">
+              <input type="radio" name="type" value="income" class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500" checked>
+              <span class="ml-2 text-gray-700">Ingreso</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input type="radio" name="type" value="expense" class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+              <span class="ml-2 text-gray-700">Egreso</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label for="category" class="block text-sm font-medium text-gray-700">Categoría</label>
+          <input type="text" id="category" name="category" placeholder="Ej: Trabajo, Comida" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+          <i class="fas fa-plus-circle mr-2"></i>Agregar Transacción
+        </button>
+      </form>
+    </div>
+    <div id="contentListado" class="tab-content hidden">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Historial de Transacciones</h2>
+      <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <input type="month" id="filterMonth" class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        <div class="text-lg font-semibold">Saldo Actual: <span id="currentBalance" class="text-blue-600">$0.00</span></div>
+      </div>
+      <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto transaction-list pr-2">
+        <p class="text-gray-500 text-center">No hay transacciones registradas.</p>
+      </div>
+    </div>
+    <div id="contentReportes" class="tab-content hidden">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Reporte Diario</h2>
+      <div>
+        <label for="reportDate" class="block text-sm font-medium text-gray-700">Seleccionar Fecha</label>
+        <input type="date" id="reportDate" name="reportDate" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm mb-4">
+      </div>
+      <div id="dailyReport" class="bg-gray-50 p-4 rounded-lg shadow">
+        <p class="text-gray-500 text-center">Seleccione una fecha para ver el reporte.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="messageModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeModal()">&times;</span>
+      <p id="modalMessage" class="text-gray-700"></p>
+      <button onclick="closeModal()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400">
+        Entendido
+      </button>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script>
+    const transactionForm = document.getElementById('transactionForm');
+    const transactionList = document.getElementById('transactionList');
+    const currentBalanceElement = document.getElementById('currentBalance');
+    const filterMonthInput = document.getElementById('filterMonth');
+    const reportDateInput = document.getElementById('reportDate');
+    const dailyReportElement = document.getElementById('dailyReport');
+    const messageModal = document.getElementById('messageModal');
+    const modalMessage = document.getElementById('modalMessage');
+    const closeButton = document.querySelector('.close-button');
+
+    let transactions = [];
+
+    function showModal(message) {
+      modalMessage.textContent = message;
+      messageModal.style.display = "block";
+    }
+
+    function closeModal() {
+      messageModal.style.display = "none";
+    }
+
+    if(closeButton) closeButton.onclick = closeModal;
+
+    window.onclick = function(event) {
+      if (event.target == messageModal) closeModal();
+    }
+
+    function loadTransactionsFromStorage() {
+      const stored = localStorage.getItem('transactions');
+      transactions = stored ? JSON.parse(stored) : [];
+      setDefaultDates();
+      loadTransactions();
+    }
+
+    function saveTransactionsToStorage() {
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+    }
+
+    function formatCurrency(amount) {
+      return `$${amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+    }
+
+    function showTab(tabName) {
+      const contents = document.querySelectorAll('.tab-content');
+      contents.forEach(content => content.classList.add('hidden'));
+      document.getElementById(`content${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.remove('hidden');
+      const buttons = document.querySelectorAll('.tab-button');
+      buttons.forEach(button => button.classList.remove('active'));
+      document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+    }
+
+    function parseDate(dateStr) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function setDefaultDates() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('date').value = today;
+      reportDateInput.value = today;
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      filterMonthInput.value = currentMonth;
+      filterMonthInput.dispatchEvent(new Event('change'));
+      generateDailyReport();
+    }
+
+    transactionForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const date = transactionForm.date.value;
+      const description = transactionForm.description.value;
+      const amount = parseFloat(transactionForm.amount.value);
+      const type = transactionForm.type.value;
+      const category = transactionForm.category.value || 'General';
+
+      if (!date || !description || isNaN(amount) || amount <= 0) {
+        showModal("Por favor, complete todos los campos correctamente.");
+        return;
+      }
+
+      transactions.push({ date, description, amount, type, category });
+      saveTransactionsToStorage();
+      showModal("Transacción agregada exitosamente.");
+      transactionForm.reset();
+      setDefaultDates();
+      loadTransactions();
+    });
+
+    function loadTransactions() {
+      const selectedMonth = filterMonthInput.value;
+      if (!selectedMonth) {
+        transactionList.innerHTML = '<p class="text-gray-500 text-center">Seleccione un mes para ver las transacciones.</p>';
+        currentBalanceElement.textContent = formatCurrency(0);
+        return;
+      }
+
+      const filtered = transactions.filter(t => t.date.startsWith(selectedMonth));
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      displayTransactions(filtered);
+      calculateBalance(filtered);
+    }
+
+    function displayTransactions(transactions) {
+      transactionList.innerHTML = '';
+      if (transactions.length === 0) {
+        transactionList.innerHTML = '<p class="text-gray-500 text-center">No hay transacciones registradas para este mes.</p>';
+        return;
+      }
+
+      transactions.forEach(trans => {
+        const item = document.createElement('div');
+        item.className = `p-3 rounded-lg shadow-sm border-l-4 ${trans.type === 'income' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`;
+        const date = new Date(trans.date);
+        const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        item.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="font-semibold text-gray-800">${trans.description}</p>
+              <p class="text-xs text-gray-500">${formattedDate} - ${trans.category}</p>
+            </div>
+            <div class="text-right">
+              <p class="font-semibold ${trans.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                ${trans.type === 'income' ? '+' : '-'} ${formatCurrency(trans.amount)}
+              </p>
+              <button onclick="deleteTransaction('${trans.date}','${trans.description}',${trans.amount}, '${trans.type}', '${trans.category}')" class="text-xs text-gray-400 hover:text-red-600 focus:outline-none">
+                <i class="fas fa-trash-alt"></i> Eliminar
+              </button>
+            </div>
+          </div>
+        `;
+        transactionList.appendChild(item);
+      });
+    }
+
+    function deleteTransaction(date, desc, amount, type, cat) {
+      showModalConfirm("¿Estás seguro de eliminar esta transacción?", () => {
+        transactions = transactions.filter(t =>
+          !(t.date === date && t.description === desc && t.amount === amount && t.type === type && t.category === cat)
+        );
+        saveTransactionsToStorage();
+        showModal("Transacción eliminada.");
+        loadTransactions();
+      });
+    }
+
+    function showModalConfirm(message, onConfirm) {
+      modalMessage.textContent = message;
+      const existingConfirmButton = messageModal.querySelector('.confirm-action-button');
+      if (existingConfirmButton) existingConfirmButton.remove();
+      const confirmButton = document.createElement('button');
+      confirmButton.textContent = 'Confirmar';
+      confirmButton.className = 'mt-4 mr-2 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md focus:outline-none confirm-action-button';
+      confirmButton.onclick = () => {
+        onConfirm();
+        closeModal();
+      };
+      const cancelButton = document.createElement('button');
+      cancelButton.textContent = 'Cancelar';
+      cancelButton.className = 'mt-4 bg-gray-300 hover:bg-gray-400 text-black font-semibold py-2 px-4 rounded-md focus:outline-none';
+      cancelButton.onclick = closeModal;
+
+      const modalContent = messageModal.querySelector('.modal-content');
+      modalContent.appendChild(confirmButton);
+      modalContent.appendChild(cancelButton);
+
+      messageModal.style.display = "block";
+    }
+
+    function calculateBalance(transactions) {
+      let balance = 0;
+      transactions.forEach(t => {
+        balance += t.type === 'income' ? t.amount : -t.amount;
+      });
+      currentBalanceElement.textContent = formatCurrency(balance);
+    }
+
+    async function generateDailyReport() {
+      const selectedDateStr = reportDateInput.value;
+      if (!selectedDateStr) {
+        dailyReportElement.innerHTML = '<p class="text-gray-500 text-center">Seleccione una fecha.</p>';
+        return;
+      }
+
+      const dailyTransactions = transactions.filter(t => t.date === selectedDateStr);
+      let totalIncome = 0, totalExpenses = 0;
+      dailyTransactions.forEach(t => {
+        if (t.type === 'income') totalIncome += t.amount;
+        else totalExpenses += t.amount;
+      });
+
+      const netFlow = totalIncome - totalExpenses;
+      dailyReportElement.innerHTML = `
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">Resumen del ${selectedDateStr}</h3>
+        <div class="space-y-1">
+          <p class="flex justify-between"><span>Ingresos Totales:</span> <span class="font-semibold text-green-600">${formatCurrency(totalIncome)}</span></p>
+          <p class="flex justify-between"><span>Egresos Totales:</span> <span class="font-semibold text-red-600">${formatCurrency(totalExpenses)}</span></p>
+          <hr class="my-1">
+          <p class="flex justify-between text-md font-bold"><span>Flujo Neto:</span> <span class="${netFlow >= 0 ? 'text-blue-600' : 'text-orange-500'}">${formatCurrency(netFlow)}</span></p>
+        </div>
+        ${dailyTransactions.length > 0 ? '<h4 class="text-md font-semibold mt-4 mb-2 text-gray-600">Detalle del día:</h4>' : ''}
+        <ul class="text-sm space-y-1">
+          ${dailyTransactions.map(t => `
+            <li class="flex justify-between items-center p-1 rounded ${t.type === 'income' ? 'bg-green-50' : 'bg-red-50'}">
+              <span>${t.description} (${t.category})</span>
+              <span class="${t.type === 'income' ? 'text-green-700' : 'text-red-700'} font-medium">
+                ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
+              </span>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    }
+
+    // Inicialización
+    filterMonthInput.addEventListener('change', loadTransactions);
+    reportDateInput.addEventListener('change', generateDailyReport);
+    showTab('transaccion');
+    loadTransactionsFromStorage();
+  </script>
+</body>
+</html>
