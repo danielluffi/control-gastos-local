@@ -1,11 +1,11 @@
 {
-  "name": "Control de Gastos Local",
+  "name": "Control de Gastos",
   "short_name": "Gastos",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "description": "App local para controlar tus gastos sin conexión",
   "theme_color": "#3b82f6",
+  "description": "App local para controlar tus gastos",
   "icons": [
     {
       "src": "icon-192.png",
